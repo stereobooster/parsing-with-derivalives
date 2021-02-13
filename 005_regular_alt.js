@@ -22,9 +22,7 @@ const alt = (...rest) => rest.reduce(alt_base);
 // Kleene star - L* = L⁰⋃Lⁱ⋃L²…
 export const rep = (lang) => ({ type: T_REP, lang });
 
-// δ(L) = true if ϵ∈L
-// δ(L) = false if ϵ∉L
-// other names: nullability function, delta
+// other names: nullability function
 const containsEmptyString = (lang) => {
   switch (lang.type) {
     case T_EMPTY:
@@ -48,6 +46,10 @@ const containsEmptyString = (lang) => {
   }
 };
 
+// δ(L) = ϵ if ϵ∈L
+// δ(L) = ∅ if ϵ∉L
+export const delta = (lang) => (containsEmptyString(lang) ? eps : empty);
+
 // Dᵥ(L)={w : vw∈L}
 // other names: Brzozowski’s derivative
 const derivative = (char, lang) => {
@@ -59,14 +61,10 @@ const derivative = (char, lang) => {
     case T_CHAR:
       return lang.char === char ? eps : empty;
     case T_CAT:
-      if (containsEmptyString(lang.first)) {
-        return alt(
-          cat(derivative(char, lang.first), lang.second),
-          derivative(char, lang.second)
-        );
-      } else {
-        return cat(derivative(char, lang.first), lang.second);
-      }
+      return alt(
+        cat(delta(lang.first), derivative(char, lang.second)),
+        cat(derivative(char, lang.first), lang.second)
+      )
     case T_ALT:
       return alt(derivative(char, lang.first), derivative(char, lang.second));
     case T_REP:

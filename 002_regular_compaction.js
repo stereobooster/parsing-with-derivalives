@@ -1,5 +1,15 @@
 import { strict as assert } from "assert";
-import { T_ALT, T_CAT, T_CHAR, T_EMPTY, T_EPS, T_REP } from "./000_base.js";
+import {
+  T_ALT,
+  T_CAT,
+  T_CHAR,
+  T_EMPTY,
+  T_EPS,
+  T_REP,
+  isEmpty,
+  isEps,
+  isRep,
+} from "./000_base.js";
 
 // empty language - ∅ = {}
 export const empty = { type: T_EMPTY };
@@ -11,16 +21,45 @@ export const eps = { type: T_EPS };
 export const character = (char) => ({ type: T_CHAR, char });
 
 // language concatenation - L₁◦L₂ = {w₁w₂ : w₁∈L₁ and w₂∈L₂}
-export const cat_base = (first, second) => ({ type: T_CAT, first, second });
+export const cat_base = (first, second) => {
+  if (isEmpty(first) || isEmpty(second)) {
+    return empty;
+  } else if (isEps(first)) {
+    return second;
+  } else if (isEps(second)) {
+    return first;
+  } else {
+    return { type: T_CAT, first, second };
+  }
+};
 const cat = (...rest) => rest.reduce(cat_base);
 
 // language union - L₁⋃L₂ = {w : w∈L₁ or w∈L₂}
-export const alt_base = (first, second) => ({ type: T_ALT, first, second });
+export const alt_base = (first, second) => {
+  if (isEmpty(first)) {
+    return second;
+  } else if (isEmpty(second)) {
+    return first;
+  } else {
+    return { type: T_ALT, first, second };
+  }
+};
 const alt = (...rest) => rest.reduce(alt_base);
 
 // Lⁱ = {w₁w₂...wᵢ : wₓ∈L for 1 ≤ x ≤ i }
 // Kleene star - L* = L⁰⋃Lⁱ⋃L²…
-export const rep = (lang) => ({ type: T_REP, lang });
+export const rep = (lang) => {
+  if (isEmpty(lang)) {
+    return eps;
+  }
+  if (isEps(lang)) {
+    return eps;
+  }
+  if (isRep(lang)) {
+    return lang;
+  }
+  return { type: T_REP, lang };
+};
 
 // δ(L) = true if ϵ∈L
 // δ(L) = false if ϵ∉L
@@ -84,23 +123,39 @@ const recognize = (str, lang) => {
 
 // Tests --------------------------------------------------------------------------
 
-const digit = alt(
-  character("0"),
-  character("1"),
-  character("2"),
-  character("3"),
-  character("4"),
-  character("5"),
-  character("6"),
-  character("7"),
-  character("8"),
-  character("9")
-);
-const number = rep(digit);
-const integer = cat(alt(eps, character("-")), digit, number);
+// assert.equal(character("x"), character("x"));
 
 const x = character("x");
 const y = character("y");
+
+// R = R
+// assert.equal(cat(x, y), cat(x, y));
+// Rϵ = ϵR = R
+assert.equal(cat(eps, x), x);
+assert.equal(cat(x, eps), x);
+// R∅ = ∅R = ∅
+assert.equal(cat(empty, x), empty);
+assert.equal(cat(x, empty), empty);
+
+// R = R
+// assert.equal(alt(y, x), alt(y, x));
+// R⋃R = R
+// assert.equal(alt(x, x), x);
+// R⋃S = S⋃R
+// assert.equal(alt(y, x), alt(y, x));
+// R⋃Ø = Ø⋃R = R
+assert.equal(alt(empty, x), x);
+assert.equal(alt(x, empty), x);
+
+// R
+// assert.equal(rep(x), rep(x));
+// Ø* = ϵ
+assert.equal(rep(empty), eps);
+// ϵ* = ϵ
+assert.equal(rep(empty), eps);
+// (R*)*= R*
+const r = rep(x);
+assert.equal(rep(r), r);
 
 // δ(∅) = false
 assert.equal(containsEmptyString(empty), false);
@@ -120,6 +175,43 @@ assert.equal(containsEmptyString(alt(x, eps), alt(y, eps)), true);
 // δ(L*) = true
 assert.equal(containsEmptyString(rep(x)), true);
 assert.equal(containsEmptyString(rep(empty)), true);
+
+// Dᵥ(∅) = ∅
+assert.equal(derivative("x", empty), empty);
+// Dᵥ(ϵ) = ∅
+assert.equal(derivative("x", eps), empty);
+// Dᵥ(v) = ϵ
+assert.equal(derivative("x", x), eps);
+// Dᵥ(v′) = ∅ if v≠v′
+assert.equal(derivative("y", x), empty);
+// Dᵥ(L*) = Dᵥ(L)∘L*
+assert.equal(derivative("x", r), derivative("x", r));
+assert.equal(derivative("x", r), r);
+assert.equal(derivative("y", r), empty);
+// Dᵥ(L₁∪L₂) = Dᵥ(L₁)∪Dᵥ(L₂)
+assert.equal(derivative("y", alt(x, y)), eps);
+// Dᵥ(L₁∘L₂) = Dᵥ(L₁)∘L₂∪Dᵥ(L₂) if ϵ∈L₁
+assert.equal(derivative("y", cat(alt(x, eps), y)), eps);
+assert.equal(derivative("y", cat(alt(y, eps), x)), x);
+assert.equal(derivative("x", cat(alt(x, eps), y)), y);
+// Dᵥ(L₁∘L₂) = Dᵥ(L₁)∘L₂ if ϵ∉L₁
+assert.equal(derivative("y", cat(x, y)), empty);
+assert.equal(derivative("y", cat(y, x)), x);
+
+const digit = alt(
+  character("0"),
+  character("1"),
+  character("2"),
+  character("3"),
+  character("4"),
+  character("5"),
+  character("6"),
+  character("7"),
+  character("8"),
+  character("9")
+);
+const number = rep(digit);
+const integer = cat(alt(eps, character("-")), digit, number);
 
 assert.equal(true, recognize("12", number));
 assert.equal(false, recognize("x", number));

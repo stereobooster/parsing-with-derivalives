@@ -21,11 +21,6 @@ const eps = { type: T_EPS };
 // singleton language - {x}
 const character = memo([{ type: "str" }], (char) => ({ type: T_CHAR, char }));
 
-assert.equal(character("x"), character("x"));
-
-const x = character("x");
-const y = character("y");
-
 // language concatenation - L₁◦L₂ = {w₁w₂ : w₁∈L₁ and w₂∈L₂}
 const cat_base = memo([{ type: "ref" }, { type: "ref" }], (first, second) => {
   if (isEmpty(first) || isEmpty(second)) {
@@ -39,15 +34,6 @@ const cat_base = memo([{ type: "ref" }, { type: "ref" }], (first, second) => {
   }
 });
 const cat = (...rest) => rest.reduce((x, y) => cat_base(x, y));
-
-// R = R
-assert.equal(cat(x, y), cat(x, y));
-// Rϵ = ϵR = R
-assert.equal(cat(eps, x), x);
-assert.equal(cat(x, eps), x);
-// R∅ = ∅R = ∅
-assert.equal(cat(empty, x), empty);
-assert.equal(cat(x, empty), empty);
 
 // language union - L₁⋃L₂ = {w : w∈L₁ or w∈L₂}
 const alt_base = memo([{ type: "ref" }, { type: "ref" }], (first, second) => {
@@ -63,18 +49,6 @@ const alt_base = memo([{ type: "ref" }, { type: "ref" }], (first, second) => {
 });
 const alt = (...rest) => rest.reduce((x, y) => alt_base(x, y));
 
-// R = R
-assert.equal(alt(y, x), alt(y, x));
-// R⋃R = R
-assert.equal(alt(x, x), x);
-// alt is implemented as linked list (unbalanced binary tree)
-// So it can contain duplicates. Search is O(n)
-// R⋃S = S⋃R
-// assert.equal(alt(y, x), alt(y, x));
-// R⋃Ø = Ø⋃R = R
-assert.equal(alt(empty, x), x);
-assert.equal(alt(x, empty), x);
-
 // Lⁱ = {w₁w₂...wᵢ : wₓ∈L for 1 ≤ x ≤ i }
 // Kleene star - L* = L⁰⋃Lⁱ⋃L²…
 const rep = memo([{ type: "ref" }], (lang) => {
@@ -89,16 +63,6 @@ const rep = memo([{ type: "ref" }], (lang) => {
   }
   return { type: T_REP, lang };
 });
-
-// R
-assert.equal(rep(x), rep(x));
-// Ø* = ϵ
-assert.equal(rep(empty), eps);
-// ϵ* = ϵ
-assert.equal(rep(empty), eps);
-// (R*)*= R*
-const r = rep(x);
-assert.equal(rep(r), r);
 
 // δ(L) = true if ϵ∈L
 // δ(L) = false if ϵ∉L
@@ -124,25 +88,6 @@ const containsEmptyString = memo([{ type: "ref" }], (lang) => {
       throw new Error("Should not happen");
   }
 });
-
-// δ(∅) = false
-assert.equal(containsEmptyString(empty), false);
-// δ(ϵ) = true
-assert.equal(containsEmptyString(eps), true);
-// δ(c) = false
-assert.equal(containsEmptyString(x), false);
-// δ(L₁∪L₂) = δ(L₁) or δ(L₂)
-assert.equal(containsEmptyString(alt(eps, x)), true);
-assert.equal(containsEmptyString(alt(x, eps)), true);
-assert.equal(containsEmptyString(alt(x, y)), false);
-// δ(L₁∘L₂) = δ(L₁) and δ(L₂)
-assert.equal(containsEmptyString(cat(x, y)), false);
-assert.equal(containsEmptyString(cat(eps, x)), false);
-assert.equal(containsEmptyString(cat(x, eps)), false);
-assert.equal(containsEmptyString(alt(x, eps), alt(y, eps)), true);
-// δ(L*) = true
-assert.equal(containsEmptyString(rep(x)), true);
-assert.equal(containsEmptyString(rep(empty)), true);
 
 // Dᵥ(L)={w : vw∈L}
 // other names: Brzozowski’s derivative
@@ -179,6 +124,69 @@ const derivative = memo(
   }
 );
 
+const recognize = (str, lang) => {
+  return str.length === 0
+    ? containsEmptyString(lang)
+    : recognize(str.slice(1), derivative(str[0], lang));
+};
+
+// Tests --------------------------------------------------------------------------
+
+assert.equal(character("x"), character("x"));
+
+const x = character("x");
+const y = character("y");
+
+// R = R
+assert.equal(cat(x, y), cat(x, y));
+// Rϵ = ϵR = R
+assert.equal(cat(eps, x), x);
+assert.equal(cat(x, eps), x);
+// R∅ = ∅R = ∅
+assert.equal(cat(empty, x), empty);
+assert.equal(cat(x, empty), empty);
+
+// R = R
+assert.equal(alt(y, x), alt(y, x));
+// R⋃R = R
+assert.equal(alt(x, x), x);
+// alt is implemented as linked list (unbalanced binary tree)
+// So it can contain duplicates. Search is O(n)
+// R⋃S = S⋃R
+// assert.equal(alt(y, x), alt(y, x));
+// R⋃Ø = Ø⋃R = R
+assert.equal(alt(empty, x), x);
+assert.equal(alt(x, empty), x);
+
+// R
+assert.equal(rep(x), rep(x));
+// Ø* = ϵ
+assert.equal(rep(empty), eps);
+// ϵ* = ϵ
+assert.equal(rep(empty), eps);
+// (R*)*= R*
+const r = rep(x);
+assert.equal(rep(r), r);
+
+// δ(∅) = false
+assert.equal(containsEmptyString(empty), false);
+// δ(ϵ) = true
+assert.equal(containsEmptyString(eps), true);
+// δ(c) = false
+assert.equal(containsEmptyString(x), false);
+// δ(L₁∪L₂) = δ(L₁) or δ(L₂)
+assert.equal(containsEmptyString(alt(eps, x)), true);
+assert.equal(containsEmptyString(alt(x, eps)), true);
+assert.equal(containsEmptyString(alt(x, y)), false);
+// δ(L₁∘L₂) = δ(L₁) and δ(L₂)
+assert.equal(containsEmptyString(cat(x, y)), false);
+assert.equal(containsEmptyString(cat(eps, x)), false);
+assert.equal(containsEmptyString(cat(x, eps)), false);
+assert.equal(containsEmptyString(alt(x, eps), alt(y, eps)), true);
+// δ(L*) = true
+assert.equal(containsEmptyString(rep(x)), true);
+assert.equal(containsEmptyString(rep(empty)), true);
+
 // Dᵥ(∅) = ∅
 assert.equal(derivative("x", empty), empty);
 // Dᵥ(ϵ) = ∅
@@ -200,12 +208,6 @@ assert.equal(derivative("x", cat(alt(x, eps), y)), y);
 // Dᵥ(L₁∘L₂) = Dᵥ(L₁)∘L₂ if ϵ∉L₁
 assert.equal(derivative("y", cat(x, y)), empty);
 assert.equal(derivative("y", cat(y, x)), x);
-
-const recognize = (str, lang) => {
-  return str.length === 0
-    ? containsEmptyString(lang)
-    : recognize(str.slice(1), derivative(str[0], lang));
-};
 
 const digit = alt(
   character("0"),

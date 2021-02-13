@@ -4,6 +4,7 @@ export const T_CHAR = Symbol("char");
 export const T_CAT = Symbol("cat");
 export const T_ALT = Symbol("alt");
 export const T_REP = Symbol("rep");
+export const T_DELTA = Symbol("delta");
 
 export const isEmpty = (lang) => lang.type === T_EMPTY;
 export const isEps = (lang) => lang.type === T_EPS;
@@ -20,6 +21,8 @@ export const toString = (lang, param = undefined) => {
       return "ϵ";
     case T_CHAR:
       return lang.char;
+    case T_DELTA:
+      return "δ";
     case T_CAT: {
       const result = `${toString(lang.first, T_CAT)}∘${toString(
         lang.second,
@@ -38,17 +41,38 @@ export const toString = (lang, param = undefined) => {
       return `[${toString(lang.lang)}]★`;
     default:
       return lang;
-    // throw new Error("Should not happen");
   }
 };
 
-const VISITED = Symbol("visited");
 // https://stereobooster.com/posts/referential-vs-structural-comparison/
 // ref - referential comparison
 // str - structural comparison
 const createStore = (type) => (type === "ref" ? new WeakMap() : new Map());
-// conf: [{arg: 1, type: str | ref }]
-export const memo = (conf, fn) => {
+// conf: [{arg?: 1, type: str | ref }]
+export const memo = (argConf, fn) => {
+  const rootStore = createStore(argConf[0].type);
+  return (...args) => {
+    let store = rootStore;
+    for (let i = 0; i < argConf.length; i++) {
+      let key = args[argConf[i].arg === undefined ? i : argConf[i].arg];
+      if (i < argConf.length - 1) {
+        if (!store.has(key)) {
+          store.set(key, createStore(argConf[i].type));
+        }
+        store = store.get(key);
+      } else {
+        if (!store.has(key)) {
+          store.set(key, fn(...args));
+        }
+        return store.get(key);
+      }
+    }
+  };
+};
+
+const VISITED = Symbol("visited");
+// conf: { argConf: {arg?: 1, type: str | ref, key?: () => {} }, fixValue?: ... }
+export const memoFix = (conf, fn) => {
   const argConf = Array.isArray(conf) ? conf : conf.arg;
   if (argConf.length !== fn.length || argConf.length < 1) {
     throw new Error("Wrong memo conf");
