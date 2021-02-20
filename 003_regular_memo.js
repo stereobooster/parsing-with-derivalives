@@ -93,8 +93,8 @@ const containsEmptyString = memo([{ type: "ref" }], (lang) => {
 // other names: Brzozowski’s derivative
 const derivative = memo(
   [
-    { type: "str", arg: 1 },
-    { type: "ref", arg: 0 },
+    { type: "ref", arg: 1 },
+    { type: "str", arg: 0 },
   ],
   (char, lang) => {
     if (char.length !== 1) throw new Error("Expect character");

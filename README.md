@@ -9,20 +9,21 @@
 
 ## Notation
 
-| Name             | Regular expression | Chomsky Grammar   | PCRE                   | Language                      |
+| Name             | Regular expression | Chomskian grammar | PCRE                   | Language                      |
 | ---------------- | ------------------ | ----------------- | ---------------------- | ----------------------------- |
 | empty language   | `∅`                |                   |                        | `{}`                          |
 | trivial language | `ϵ`                | S → ε             | `^$`¹ or `^.{0}$`¹     | `{ε}`                         |
 | singleton lang.  | `a`                | S → a             | `^a$`                  | `{a}`                         |
 | concatenation    | `ab` or `a∘b`      | S → ab            | `^ab$`                 | `{ab}` or `{a}∘{b}`           |
-| union            | `a+b` or `a⋃b`     | S → a \| b        | `^[ab]$` or `^[a\|b]$` | `{a,b}` or `{a}⋃{b}`          |
-| Kleene star      | `a*`               | S → ε \| aS       | `^a*$` or `^a{0,}$`    | `{ε,a,aa, ...}`               |
-| Kleene plus      | `aa*` or `a∘a*`    | S → a \| aS       | `^a+$` or `^a{1,}$`    | `{a,aa, ...}`                 |
+| union            | `a+b` or `a⋃b`     | S → a \| b        | `^[ab]$` or `^(a\|b)$` | `{a,b}` or `{a}⋃{b}`          |
+| Kleene star²     | `a*` or `a★`       | S → ε \| aS       | `^a*$` or `^a{0,}$`    | `{ε,a,aa, ...}`               |
+| Kleene plus      | `aa*` or `a∘a★`    | S → a \| aS       | `^a+$` or `^a{1,}$`    | `{a,aa, ...}`                 |
 |                  | `a+ϵ` or `a⋃ϵ`     | S → a \| ε        | `^a?$` or `^a{0,1}$`   | `{a,ε}` or `{a}⋃{ε}`          |
 | alphabet         |                    | S → a \| b \| ... | `^.$`¹                 | `{a,b,c,d, ...}` or `Σ`       |
 | difference       |                    | S → b \| c \| ... | `^[^a]$`¹              | `{b,c,d,e, ...}` or `Σ - {a}` |
 
 ¹ - approximation
+² - repetition
 
 [PCRE](http://www.pcre.org/current/doc/html/pcre2pattern.html#SEC1) - Perl Compatible Regular Expressions
 
