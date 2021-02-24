@@ -48,6 +48,10 @@ const alt = (...rest) => rest.reduce(alt_base);
 // Kleene star - L* = L⁰⋃Lⁱ⋃L²…
 export const rep = (lang) => new Proxy({ type: T_REP, lang }, lazyHandler);
 
+// δ(L) = ϵ if ϵ∈L
+// δ(L) = ∅ if ϵ∉L
+export const delta = (lang) => new Proxy({ type: T_DELTA, lang }, lazyHandler);
+
 // other names: nullability function
 const containsEmptyString = fix(
   { arg: [{ type: "ref" }], fixValue: false },
@@ -76,10 +80,6 @@ const containsEmptyString = fix(
     }
   }
 );
-
-// δ(L) = ϵ if ϵ∈L
-// δ(L) = ∅ if ϵ∉L
-export const delta = (lang) => new Proxy({ type: T_DELTA, lang }, lazyHandler);
 
 // Dᵥ(L)={w : vw∈L}
 // other names: Brzozowski’s derivative
@@ -120,6 +120,16 @@ const recognize = (str, lang) => {
   return str.length === 0
     ? containsEmptyString(lang)
     : recognize(str.slice(1), derivative(str[0], lang));
+};
+
+const letrec = (fn) => {
+  const fakeLang = {}; //{ recursive: true };
+  const lang = fn(fakeLang);
+  if (isAtomic(lang)) {
+    throw new Error("Immediate children of rec should be non-atomic language");
+  }
+  Object.entries(lang).forEach(([key, value]) => (fakeLang[key] = value));
+  return fakeLang;
 };
 
 // Tests --------------------------------------------------------------------------
@@ -179,35 +189,34 @@ assert.equal(false, recognize("x", cat(y, alt(x, eps))));
 assert.equal(true, recognize("yx", cat(y, alt(x, eps))));
 assert.equal(false, recognize("xy", cat(y, alt(x, eps))));
 
-const letrec = (fn) => {
-  const fakeLang = {}; //{ recursive: true };
-  const lang = fn(fakeLang);
-  if (isAtomic(lang)) {
-    throw new Error("Immediate children of rec should be non-atomic language");
-  }
-  Object.entries(lang).forEach(([key, value]) => (fakeLang[key] = value));
-  return fakeLang;
-};
-
-const rlang = letrec((lang) => cat(x, lang));
-
 // test for cicles
+// L = {x}◦L - this language contains one string of infinite length,
+// it is not possible to build recognizer for it
+const rlang = letrec((lang) => cat(x, lang));
 assert.equal(rlang, rlang.second);
 assert.equal(rlang, rlang.second.second);
 
-// L={x}◦(ϵ⋃L)
+// regular language
+// L = {x}◦(ϵ⋃L)
+// L → x | xL
+// L = x◦x★
 const rightRecursive = letrec((lang) => cat(x, alt(eps, lang)));
 assert.equal(false, recognize("y", rightRecursive));
 assert.equal(true, recognize("x", rightRecursive));
 assert.equal(true, recognize("xx", rightRecursive));
 
-// L=(ϵ⋃L)◦{x}
+// regular language
+// L = (ϵ⋃L)◦{x}
+// L → x | Lx
+// L = x★◦x
 const leftRecursive = letrec((lang) => cat(alt(eps, lang), x));
 assert.equal(false, recognize("y", leftRecursive));
 assert.equal(true, recognize("x", leftRecursive));
 assert.equal(true, recognize("xx", leftRecursive));
 
-// L={[}◦(ϵ⋃L)◦{]}
+// context free language
+// L = {[}◦(ϵ⋃L)◦{]}
+// L → [] | [L]
 const leftBracket = character("[");
 const rightBracket = character("]");
 const middleRecursive = letrec((lang) =>

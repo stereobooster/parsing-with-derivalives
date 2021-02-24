@@ -1,10 +1,11 @@
 export const T_EMPTY = Symbol("empty");
-export const T_EPS = Symbol("eps");
-export const T_CHAR = Symbol("char");
-export const T_CAT = Symbol("cat");
-export const T_ALT = Symbol("alt");
-export const T_REP = Symbol("rep");
+export const T_EPS = Symbol("epsilon");
+export const T_CHAR = Symbol("character");
+export const T_CAT = Symbol("concatenation");
+export const T_ALT = Symbol("alternation");
+export const T_REP = Symbol("repetition");
 export const T_DELTA = Symbol("delta");
+export const T_RED = Symbol("reduction");
 
 export const isEmpty = (lang) => lang.type === T_EMPTY;
 export const isEps = (lang) => lang.type === T_EPS;
@@ -97,6 +98,8 @@ export const toString = fix(
         return lang.char;
       case T_DELTA:
         return "δ";
+      case T_RED:
+        return "→";
       case T_CAT: {
         const result = `${toString(lang.first, T_CAT)}∘${toString(
           lang.second,
