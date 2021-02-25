@@ -10,6 +10,13 @@ import {
   fix,
   memo,
   isAtomic,
+  isAlt,
+  isCharacter,
+  isEmpty,
+  isEps,
+  isRep,
+  isCat,
+  T_RED,
 } from "./000_base.js";
 
 const lazyHandler = {
@@ -51,6 +58,11 @@ export const rep = (lang) => new Proxy({ type: T_REP, lang }, lazyHandler);
 // δ(L) = ∅ if ϵ∉L
 export const delta = (lang) => new Proxy({ type: T_DELTA, lang }, lazyHandler);
 
+export const reduction = (lang, reduce) =>
+  new Proxy({ type: T_RED, lang, reduce }, lazyHandler);
+
+export const isReduction = (lang) => lang.type === T_RED;
+
 // Dᵥ(L)={w : vw∈L}
 // other names: Brzozowski’s derivative
 const derivative = memo(
@@ -80,6 +92,11 @@ const derivative = memo(
         );
       case T_REP:
         return cat(() => derivative(char, language.lang), language);
+      case T_RED:
+        return reduction(
+          () => derivative(char, language.lang),
+          language.reduce
+        );
       default:
         throw new Error("Should not happen");
     }
@@ -110,13 +127,11 @@ const union = (x1, x2) => {
   ]);
 };
 
-// const cons1 = (x1, x2) => [x1, x2];
-const cons2 = (x1, x2) =>
+const cons = (x1, x2) =>
   [x1, x2]
     .filter((x) => !Array.isArray(x) || x.length > 0)
     .map((x) => (Array.isArray(x) && x.length === 1 ? x[0] : x));
 
-const cons = cons2;
 const forset = (x1, x2) => {
   const length = Math.min(x1.length, x2.length);
   const result = [];
@@ -146,16 +161,122 @@ const parseNull = fix(
         return union(parseNull(language.first), parseNull(language.second));
       case T_CAT:
         return forset(parseNull(language.first), parseNull(language.second));
+      case T_RED:
+        return new Set([...language.reduce(parseNull(language.lang))]);
       default:
         throw new Error("Should not happen");
     }
   }
 );
 
+const isEmptyLike = fix(
+  { arg: [{ type: "ref" }], fixValue: false },
+  (language) => {
+    switch (language.type) {
+      case T_EMPTY:
+        return true;
+      case T_EPS:
+        return false;
+      case T_CHAR:
+        return false;
+      case T_REP:
+        return false;
+      case T_ALT:
+        return isEmptyLike(language.first) && isEmptyLike(language.second);
+      case T_CAT:
+        return isEmptyLike(language.first) || isEmptyLike(language.second);
+      case T_RED:
+        return isEmptyLike(language.lang);
+      default:
+        // TODO how to handle delta
+        // throw new Error("Should not happen");
+        return false; // fixValue
+    }
+  }
+);
+
+const isEpsLike = fix(
+  { arg: [{ type: "ref" }], fixValue: true },
+  (language) => {
+    switch (language.type) {
+      case T_EMPTY:
+        return false;
+      case T_EPS:
+        return true;
+      case T_CHAR:
+        return false;
+      case T_REP:
+        return isEmptyLike(language.lang) || isEpsLike(language.lang);
+      case T_ALT:
+        return isEpsLike(language.first) && isEpsLike(language.second);
+      case T_CAT:
+        return isEpsLike(language.first) && isEpsLike(language.second);
+      case T_RED:
+        return isEpsLike(language.lang);
+      default:
+        // TODO how to handle delta
+        // throw new Error("Should not happen");
+        return true; // fixValue
+    }
+  }
+);
+
+const compact = memo([{ type: "ref" }], (language) => {
+  if (isEmpty(language) || isEps(language)) {
+    return language;
+  }
+  if (isEmptyLike(language)) {
+    return empty;
+  }
+  if (isEpsLike(language)) {
+    return epsilon(parseNull(language));
+  }
+  if (isCharacter(language)) {
+    return language;
+  }
+  if (isRep(language)) {
+    if (isEmptyLike(language.lang)) {
+      return epsilon(emptyEmptyTree);
+    } else {
+      return rep(() => compact(language.lang));
+    }
+  }
+  if (isAlt(language)) {
+    if (isEmptyLike(language.first)) {
+      return compact(language.second);
+    }
+    if (isEmptyLike(language.second)) {
+      return compact(language.first);
+    }
+    return alt(
+      () => compact(language.first),
+      () => compact(language.second)
+    );
+  }
+  if (isCat(language)) {
+    // TODO
+    // [(∘ (nullp t) L2)   (→ (K L2) (λ (w2) (cons t w2)))]
+    // [(∘ L1 (nullp t))   (→ (K L1) (λ (w1) (cons w1 t)))]
+    return cat(
+      () => compact(language.first),
+      () => compact(language.second)
+    );
+  }
+  if (isReduction(language)) {
+    // TODO
+    // [(→ (and e (? ε?)) f)
+    //   (ε (for/set ([t (parse-null e)]) (f t)))]
+    // [(→ (∘ (nullp t) L2) f)   (→ (K L2) (λ (w2) (f (cons t w2))))]
+    // [(→ (→ L f) g)            (→ (K L) (compose g f))]
+    // [(→ L f)                  (→ (K L) f)]))
+  }
+  return language;
+});
+
 const parse = (str, lang) => {
   return str.length === 0
     ? parseNull(lang)
-    : parse(str.slice(1), derivative(str[0], lang));
+    : parse(str.slice(1), compact(derivative(str[0], lang)));
 };
 
 const letrec = (fn) => {
@@ -208,25 +329,6 @@ const middleRecursive = letrec((lang) =>
   cat(leftBracket, alt(eps, lang), rightBracket)
 );
 
-// with cons1
-// assert.deepEqual([["1", ["2", []]]], parse("12", number));
-// assert.deepEqual(
-//   [
-//     [
-//       ["-", "1"],
-//       ["2", []],
-//     ],
-//   ],
-//   parse("-12", integer)
-// );
-// assert.deepEqual([["x", ["x", []]]], parse("xx", rightRecursive));
-// assert.deepEqual([[[[], "x"], "x"]], parse("xx", leftRecursive));
-// assert.deepEqual(
-//   [[["[", [["[", []], "]"]], "]"]],
-//   parse("[[]]", middleRecursive)
-// );
-
-// with cons2
 assert.deepEqual([["1", "2"]], parse("12", number));
 assert.deepEqual([[["-", "1"], "2"]], parse("-12", integer));
 assert.deepEqual([["x", "x"]], parse("xx", rightRecursive));

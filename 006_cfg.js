@@ -123,7 +123,7 @@ const recognize = (str, lang) => {
 };
 
 const letrec = (fn) => {
-  const fakeLang = {}; //{ recursive: true };
+  const fakeLang = {};
   const lang = fn(fakeLang);
   if (isAtomic(lang)) {
     throw new Error("Immediate children of rec should be non-atomic language");
@@ -225,3 +225,7 @@ const middleRecursive = letrec((lang) =>
 assert.equal(false, recognize("y", middleRecursive));
 assert.equal(true, recognize("[]", middleRecursive));
 assert.equal(true, recognize("[[]]", middleRecursive));
+
+// L = x★∘x
+const ambigious = cat(rep(x), x);
+assert.deepEqual(true, recognize("xxx", ambigious));
