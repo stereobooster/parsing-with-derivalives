@@ -226,6 +226,31 @@ assert.equal(false, recognize("y", middleRecursive));
 assert.equal(true, recognize("[]", middleRecursive));
 assert.equal(true, recognize("[[]]", middleRecursive));
 
-// L = x★∘x
-const ambigious = cat(rep(x), x);
-assert.deepEqual(true, recognize("xxx", ambigious));
+// L → Exp2
+// Exp1 → Exp1 * Exp1 | Exp1 / Exp1 | (Exp1) | Number
+// Exp2 → Exp2 + Exp2 | Exp2 - Exp2 | (Exp2) | Exp1
+const leftParen = character("(");
+const rightParen = character(")");
+const multiply = character("*");
+const divide = character("/");
+const plus = character("+");
+const minus = character("-");
+const exp1 = letrec((exp1) =>
+  alt(
+    cat(exp1, multiply, exp1),
+    cat(exp1, divide, exp1),
+    cat(leftParen, exp1, rightParen),
+    number
+  )
+);
+const exp2 = letrec((exp2) =>
+  alt(
+    cat(exp2, plus, exp2),
+    cat(exp2, minus, exp2),
+    cat(leftParen, exp2, rightParen),
+    exp1
+  )
+);
+const ambiguous = exp2;
+assert.deepEqual(true, recognize("1+1-1", ambiguous));
+assert.deepEqual(false, recognize("1+1-x", ambiguous));

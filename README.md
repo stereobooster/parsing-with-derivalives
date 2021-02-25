@@ -1,11 +1,10 @@
 # Parsing with derivatives
 
-- http://matt.might.net/papers/might2011derivatives.pdf
-- http://matt.might.net/articles/parsing-with-derivatives/
-- https://www.youtube.com/watch?v=ZzsK8Am6dKU
-- https://github.com/webyrd/relational-parsing-with-derivatives
-- https://gist.github.com/pervognsen/815b208b86066f6d7a00
-- http://www.ucombinator.org/projects/parsing/
+- blog post http://matt.might.net/articles/parsing-with-derivatives/
+- video https://www.youtube.com/watch?v=ZzsK8Am6dKU
+- paper http://matt.might.net/papers/might2011derivatives.pdf
+- implementation http://www.ucombinator.org/projects/parsing/
+- another implementation https://github.com/webyrd/relational-parsing-with-derivatives
 
 ## Notation
 
@@ -39,3 +38,5 @@ $      assert end of string (or line, in multiline mode)
 ^      negate the class, but only if the first character
 ]      terminates the character class
 ```
+
+Idea: use new node of type "recursive" instead of `letrec` function
