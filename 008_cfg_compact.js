@@ -103,6 +103,9 @@ const derivative = memo(
   }
 );
 
+const emptyTree = [];
+const emptyEmptyTree = [emptyTree];
+
 // because Set uses referential comparison
 const arrayToString = memo([{ type: "ref" }], (x) => `[${x.map(toString)}]`);
 function toString(x) {
@@ -122,8 +125,8 @@ const removeDuplicates = (list) => {
 };
 const union = (x1, x2) => {
   return removeDuplicates([
-    ...(x1 === undefined ? [[]] : x1),
-    ...(x2 === undefined ? [[]] : x2),
+    ...(x1 === undefined ? emptyEmptyTree : x1),
+    ...(x2 === undefined ? emptyEmptyTree : x2),
   ]);
 };
 
@@ -141,8 +144,6 @@ const forset = (x1, x2) => {
   return removeDuplicates(result);
 };
 
-const emptyTree = [];
-const emptyEmptyTree = [emptyTree];
 const parseNull = fix(
   { arg: [{ type: "ref" }], fixValue: emptyTree },
   (language) => {
