@@ -365,6 +365,7 @@ const exp2 = letrec((exp2) =>
   )
 );
 const ambiguous = exp2;
+
 // returns 2 trees
 assert.deepEqual(
   [

@@ -39,4 +39,9 @@ $      assert end of string (or line, in multiline mode)
 ]      terminates the character class
 ```
 
+TODO:
+
+- better tree representation
+- implement all compaction rules
+
 Idea: use new node of type "recursive" instead of `letrec` function
