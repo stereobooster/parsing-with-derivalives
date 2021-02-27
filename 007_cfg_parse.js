@@ -238,6 +238,14 @@ assert.deepEqual([["x", ["x", "x"]]], parse("xxx", rep(x)));
 assert.deepEqual([["x", ["x", "x"]]], parse("xxx", rightRecursive));
 assert.deepEqual([[["x", "x"], "x"]], parse("xxx", leftRecursive));
 
+// L = x★∘x★
+const ambiguousReg = cat(rep(x), rep(x));
+assert.deepEqual(
+  [[["x", ["x", "x"]]], ["x", ["x", "x"]], [["x", "x"], "x"]],
+  parse("xxx", ambiguousReg)
+);
+assert.deepEqual([], parse("xxxy", ambiguousReg));
+
 // This is very slow!
 // L → Exp2
 // Exp1 → Exp1 * Exp1 | Exp1 / Exp1 | (Exp1) | Number
@@ -264,7 +272,7 @@ assert.deepEqual([[["x", "x"], "x"]], parse("xxx", leftRecursive));
 //     exp1
 //   )
 // );
-// const ambiguous = exp2;
+// const ambiguousCfg = exp2;
 // assert.deepEqual(
 //   [
 //     [
@@ -273,5 +281,5 @@ assert.deepEqual([[["x", "x"], "x"]], parse("xxx", leftRecursive));
 //     ],
 //     [[[["1", "+"], "1"], "-"], "1"],
 //   ],
-//   parse("1+1-1", ambiguous)
+//   parse("1+1-1", ambiguousCfg)
 // );

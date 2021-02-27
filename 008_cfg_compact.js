@@ -340,6 +340,14 @@ assert.deepEqual([["x", ["x", "x"]]], parse("xxx", rep(x)));
 assert.deepEqual([["x", ["x", "x"]]], parse("xxx", rightRecursive));
 assert.deepEqual([[["x", "x"], "x"]], parse("xxx", leftRecursive));
 
+// L = x★∘x★
+const ambiguousReg = cat(rep(x), rep(x));
+assert.deepEqual(
+  [[["x", ["x", "x"]]], ["x", ["x", "x"]], [["x", "x"], "x"]],
+  parse("xxx", ambiguousReg)
+);
+assert.deepEqual([], parse("xxxy", ambiguousReg));
+
 // L → Exp2
 // Exp1 → Exp1 * Exp1 | Exp1 / Exp1 | (Exp1) | Number
 // Exp2 → Exp2 + Exp2 | Exp2 - Exp2 | (Exp2) | Exp1
@@ -365,7 +373,7 @@ const exp2 = letrec((exp2) =>
     exp1
   )
 );
-const ambiguous = exp2;
+const ambiguousCfg = exp2;
 
 // returns 2 trees
 assert.deepEqual(
@@ -376,7 +384,7 @@ assert.deepEqual(
     ],
     [[[["1", "+"], "1"], "-"], "1"],
   ],
-  parse("1+1-1", ambiguous)
+  parse("1+1-1", ambiguousCfg)
 );
 
 // returns 1 tree
@@ -387,7 +395,7 @@ assert.deepEqual(
       [["1", "*"], "1"],
     ],
   ],
-  parse("1+1*1", ambiguous)
+  parse("1+1*1", ambiguousCfg)
 );
 
 // returns 1 tree
@@ -398,5 +406,8 @@ assert.deepEqual(
       [["(", [["1", "-"], "1"]], ")"],
     ],
   ],
-  parse("1+(1-1)", ambiguous)
+  parse("1+(1-1)", ambiguousCfg)
 );
+
+// returns 0 trees
+assert.deepEqual([], parse("1+(1-x)", ambiguousCfg));

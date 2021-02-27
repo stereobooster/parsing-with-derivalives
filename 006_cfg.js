@@ -226,6 +226,11 @@ assert.equal(false, recognize("y", middleRecursive));
 assert.equal(true, recognize("[]", middleRecursive));
 assert.equal(true, recognize("[[]]", middleRecursive));
 
+// L = x★∘x★
+const ambiguousReg = cat(rep(x), rep(x));
+assert.deepEqual(true, recognize("xxx", ambiguousReg));
+assert.deepEqual(false, recognize("xxxy", ambiguousReg));
+
 // L → Exp2
 // Exp1 → Exp1 * Exp1 | Exp1 / Exp1 | (Exp1) | Number
 // Exp2 → Exp2 + Exp2 | Exp2 - Exp2 | (Exp2) | Exp1
@@ -251,6 +256,6 @@ const exp2 = letrec((exp2) =>
     exp1
   )
 );
-const ambiguous = exp2;
-assert.deepEqual(true, recognize("1+1-1", ambiguous));
-assert.deepEqual(false, recognize("1+1-x", ambiguous));
+const ambiguousCfg = exp2;
+assert.deepEqual(true, recognize("1+1-1", ambiguousCfg));
+assert.deepEqual(false, recognize("1+1-x", ambiguousCfg));

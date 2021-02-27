@@ -139,6 +139,7 @@ assert.equal(false, recognize("x", cat(y, alt(x, eps))));
 assert.equal(true, recognize("yx", cat(y, alt(x, eps))));
 assert.equal(false, recognize("xy", cat(y, alt(x, eps))));
 
-// L = x★∘x
-const ambiguous = cat(rep(x), x);
-assert.deepEqual(true, recognize("xxx", ambiguous));
+// L = x★∘x★
+const ambiguousReg = cat(rep(x), rep(x));
+assert.deepEqual(true, recognize("xxx", ambiguousReg));
+assert.deepEqual(false, recognize("xxxy", ambiguousReg));
