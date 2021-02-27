@@ -241,6 +241,7 @@ assert.deepEqual([[["x", "x"], "x"]], parse("xxx", leftRecursive));
 // L = x★∘x★
 const ambiguousReg = cat(rep(x), rep(x));
 assert.deepEqual(
+  //("", "xxx")         ("x", "xx")        ("xx", "x")
   [[["x", ["x", "x"]]], ["x", ["x", "x"]], [["x", "x"], "x"]],
   parse("xxx", ambiguousReg)
 );
