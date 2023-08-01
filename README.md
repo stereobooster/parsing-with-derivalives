@@ -1,3 +1,5 @@
+Moved to https://github.com/stereobooster/parsing
+
 # Parsing with derivatives
 
 - blog post http://matt.might.net/articles/parsing-with-derivatives/
