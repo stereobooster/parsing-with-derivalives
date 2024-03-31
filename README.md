@@ -1,4 +1,4 @@
-Moved to https://github.com/stereobooster/parsing
+Moved to https://parsing.stereobooster.com/
 
 # Parsing with derivatives
 
